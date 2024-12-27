@@ -1,4 +1,37 @@
--- objects
+-- objects 
+local _oldd = clonefunction(getscriptclosure_handler)
+
+getgenv().getscriptclosure = newcclosure(function(scr) 
+	local closure = _oldd(scr)
+
+	if typeof(closure) == "function" then
+		local scriptEnv = getfenv(closure)
+
+		scriptEnv["script"] = scr
+
+		return closure
+	else
+		return nil
+	end
+end)
+getgenv().setthreadidentity = function(identity: number): ()
+    _setidentity(identity)
+    task.wait()
+end
+
+getgenv().setidentity = getgenv().setthreadidentity
+getgenv().setthreadcontext = getgenv().setthreadidentity
+getgenv().getscriptfunction = getgenv().getscriptclosure
+getgenv().getscripts = function()
+    local scripts = {}
+    for i, v in pairs(game:GetDescendants()) do
+        if v:IsA("LocalScript") or v:IsA("ModuleScript") then
+            table.insert(scripts, v)
+        end
+    end
+    return scripts
+end
+
 getgenv().getinstances = function()
             local objs = {}
             for i,v in next, getreg() do
