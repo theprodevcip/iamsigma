@@ -1,4 +1,154 @@
 -- objects
+getgenv().getinstances = function()
+            local objs = {}
+            for i,v in next, getreg() do
+               if type(v)=='table' then
+                  for o,b in next, v do
+                      if typeof(b) == "Instance" then
+                           table.insert(objs, b)
+                      end
+                  end
+               end
+            end
+         return objs
+ end
+local oldreq = clonefunction(getrenv().require)
+getgenv().require = newcclosure(function(v)
+    local oldlevel = getthreadcontext()
+    local succ, res = pcall(oldreq, v)
+    if not succ and res:find('RobloxScript') then
+        succ = nil
+        coroutine.resume(coroutine.create(newcclosure(function()
+            setthreadcontext((oldlevel > 5 and 2) or 8)
+            succ, res = pcall(oldreq, v)
+        end)))
+        repeat task.wait() until succ ~= nil
+    end
+    
+    setthreadcontext(oldlevel)
+    
+    if succ then
+        return res
+    end
+end)
+if not game:IsLoaded() then
+    game.Loaded:Wait();
+end
+
+
+do
+    local CoreGui = game:GetService('CoreGui')
+    local HttpService = game:GetService('HttpService')
+
+    local comm_channels = CoreGui:FindFirstChild('comm_channels') or Instance.new('Folder', CoreGui)
+    if comm_channels.Name ~= 'comm_channels' then
+        comm_channels.Name = 'comm_channels'
+    end
+    getgenv().create_comm_channel = newcclosure(function() 
+        local id = HttpService:GenerateGUID()
+        local event = Instance.new('BindableEvent', comm_channels)
+        event.Name = id
+        return id, event
+    end)
+
+    getgenv().get_comm_channel = newcclosure(function(id) 
+        assert(type(id) == 'string', 'string expected as argument #1')
+        return comm_channels:FindFirstChild(id)
+    end)
+end
+
+getgenv().getactors = newcclosure(function()
+    local actors = {};
+    for i, v in game:GetDescendants() do
+        if v:IsA("Actor") then
+            table.insert(actors, v);
+        end
+    end
+    return actors;
+end);
+
+getgenv().getnilinstances = function()
+    local objs = {}
+	for i,v in next,getreg() do
+		if type(v)=="table" then
+			for o,b in next,v do
+				if typeof(b) == "Instance" and b.Parent==nil then
+					table.insert(objs, b)
+				end
+			end
+		end
+	end
+	return objs
+end
+
+getgenv().getscripts = function()
+    local scripts = {}
+    for i, v in pairs(game:GetDescendants()) do
+        if v:IsA("LocalScript") or v:IsA("ModuleScript") then
+            table.insert(scripts, v)
+        end
+    end
+    return scripts
+end
+
+getgenv().getloadedmodules = function()
+    local list = {}
+    for i, v in getgc(false) do
+        if typeof(v) == "function" then
+            local success, env = pcall(getfenv, v)
+            if success and typeof(env) == "table" and typeof(env["script"]) == "Instance" and env["script"]:IsA("ModuleScript") then
+                if not table.find(list, env["script"]) then
+                    table.insert(list, env["script"])
+                end
+            end
+        end
+    end
+    return list
+end
+
+getgenv().getsenv = function(script_instance)
+   for i, v in pairs(getreg()) do
+      if type(v) == "function" then
+         if getfenv(v).script == script_instance then
+             return getfenv(v)
+             end
+          end
+     end
+end
+getgenv().getrunningscripts = function()
+    local t = table.create(0)
+
+    for i,v in pairs(getreg()) do
+        if typeof(v) == "thread" then
+            local a = gettenv(v)
+
+            if a["script"] then
+                if not table.find(t,a.script) then
+                    table.insert(t, a.script)
+                end
+            end
+        end
+    end
+
+return t
+
+end
+local testdebug = table.clone(debug)
+
+testdebug.getconstant = getgenv().getconstant
+testdebug.getconstants = getgenv().getconstants
+testdebug.getinfo = getgenv().getinfo
+testdebug.setconstant = getgenv().setconstant
+testdebug.getproto = getgenv().getproto
+testdebug.getprotos = getgenv().getprotos
+testdebug.getstack = getgenv().getstack
+testdebug.setstack = getgenv().setstack
+testdebug.getupvalue = getgenv().getupvalue
+testdebug.getupvalues = getgenv().getupvalues
+testdebug.setupvalue = getgenv().setupvalue
+testdebug.getregistry = getgenv().getregistry
+
+debug = testdebug
 local camera = workspace.CurrentCamera
 
 local drawing_container = Instance.new("ScreenGui")
